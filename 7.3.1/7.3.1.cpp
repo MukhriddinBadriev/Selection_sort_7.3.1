@@ -6,68 +6,52 @@
 #include <chrono>
 #include <numeric>
 
-//void algo_sort(std::vector<int> &v) {    
-//    int elem = v.size();
-//    int a = 0;
-//    int e = 0;
-//    int min = v[a];
-//   // for(int j=0;j<v.size();j++){
-//    while (elem!=0) {
-//        for (int i=a; i < v.size(); i++) {
-//            if (v[i] <= min) {
-//                min = v[i];
-//                e = i;
-//            }
-//        }        
-//        std::swap(v[e], v[a]);
-//         a++;
-//        --elem;
-//    }
-//}
 
-
-void algo_sort(std::vector<int>& v, std::promise<int> prom) {
-    int elem = v.size();
-    
+int find_min(std::vector<int>& v,int start, std::promise<int> find_promise) {
     int a = 0;
-    int e = 0;
-    int min = v[a];    
-    while (elem != 0) {
-        for (int i = a; i < v.size(); i++) {       
-            if (v[i] <= min) {
-                 min = v[i];
-                 e = i;
-            }             
-        }        
-        std::swap(v[e], v[a]);
-        a++;
-        --elem;        
-    }
-    prom.set_value(min);
+    int min = v[0];
+    int z = 0;
+    for (int i = 0; i < v.size(); i++) {
+        if (v[i] < min) {
+            min = v[i];
+            z = i;
+            find_promise.set_value(z);
+        }
+    }    
+    return z;
 }
 
-
+void algo_sort(std::vector<int> &v) {
+    int elem = v.size();
+    int a = 0;
+    int e = 0;
+    int min = v[a];   
+    while (elem!=0) {                
+        std::promise<int> P;
+        std::future<int> F = P.get_future();
+        std::future<int> res = std::async(std::launch::async, find_min, std::ref(v), a, move(P));
+        int min_number = F.get();
+        std::swap(v[min_number], v[a]);
+         a++;
+        --elem;
+    }
+}
+   
 int main()
 {
-    
-    std::vector<int> v(10);    
-    std::generate(v.begin(), v.end(), []() {return rand() % 10; });
-    std::cout << "vector before sorting: " << "\n\n";
-    for (int i = 0; i < v.size(); i++) {
-        std::cout << v[i] << ' ';
-    }std::cout <<"\n\n" ;
+        std::vector<int> v(5);
+        std::generate(v.begin(), v.end(), []() {return rand() % 10; });
+        std::cout << "vector before sorting: " << "\n\n";
+        for (int i = 0; i < v.size(); i++) {
+            std::cout << v[i] << ' ';
+        }std::cout << "\n\n";
+        
+        algo_sort(v);
 
-    std::promise<int> P2;
-    std::future<int> F2 = P2.get_future();
-    auto res = std::async(std::launch::async,algo_sort,ref(v), move(P2));
-    F2.wait();
-    
-    //algo_sort(v);
-
-    std::cout << "vector after sorting: " << "\n\n";
-    for (int i = 0; i < v.size(); i++) {
-        std::cout << v[i] << ' ';
-    }std::cout << std::endl;
-    
+        std::cout << "vector after sorting: " << "\n\n";
+        for (int i = 0; i < v.size(); i++) {
+            std::cout << v[i] << ' ';
+        }std::cout << std::endl;
+   
     return 0;
 }
